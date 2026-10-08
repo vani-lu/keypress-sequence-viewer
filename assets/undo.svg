@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg"
+     viewBox="0 0 40 40"
+     width="160"
+     height="160"
+     role="img"
+     aria-labelledby="title desc"
+     style="color: #8e9394; color: color(display-p3 0.5566406 0.5766602 0.5805664)">
+  <title id="title">Undo</title>
+  <desc id="desc">Curved undo arrow icon.</desc>
+  <path d="M10 12 H21
+           C28 12 32 16 32 22
+           C32 28 27 32 21 32 H16"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="3"
+        stroke-linecap="round"
+        stroke-linejoin="round" />
+  <path d="M10 12 L16 6 M10 12 L16 18"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="3"
+        stroke-linecap="round"
+        stroke-linejoin="round" />
+</svg>

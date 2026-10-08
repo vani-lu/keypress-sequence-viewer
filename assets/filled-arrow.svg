@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg"
+     viewBox="-4.66667 -8.5 40 40"
+     width="160"
+     height="160"
+     preserveAspectRatio="xMidYMid meet"
+     role="img"
+     aria-labelledby="title desc"
+     style="color: #8e9394; color: color(display-p3 0.5566406 0.5766602 0.5805664)">
+  <title id="title">Filled left-pointing arrow</title>
+  <desc id="desc">Vector arrow extracted from the Keynote HTML export.</desc>
+  <path d="M12.56764 16.504
+           V23
+           L0 11.5
+           L12.56764 0
+           V6.497
+           H30.66667
+           V16.504
+           Z"
+        fill="currentColor"
+        stroke="currentColor"
+        stroke-width="3"
+        stroke-linecap="butt"
+        stroke-linejoin="miter" />
+</svg>

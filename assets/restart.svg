@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg"
+     viewBox="0 0 40 40"
+     width="160"
+     height="160"
+     role="img"
+     aria-labelledby="title desc"
+     style="color: #8e9394; color: color(display-p3 0.5566406 0.5766602 0.5805664)">
+  <title id="title">Restart</title>
+  <desc id="desc">Circular restart arrow icon.</desc>
+  <path d="M30 14
+           A12 12 0 1 0 31.5 23"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="3"
+        stroke-linecap="round"
+        stroke-linejoin="round" />
+  <path d="M30 14 V7 M30 14 H23"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="3"
+        stroke-linecap="round"
+        stroke-linejoin="round" />
+</svg>
