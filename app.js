@@ -65,11 +65,11 @@ const templates = Object.fromEntries(Object.entries(ASSETS).map(([key, source]) 
   const root = new DOMParser().parseFromString(source, 'image/svg+xml').documentElement;
   return [key, { viewBox: root.getAttribute('viewBox'), paths: [...root.querySelectorAll('path')] }];
 }));
-function createSequenceSvg(keys, { size, gap, style, color, showRuler = false, segments = [], segmentGap = 8, layerGap = 24, lowerColor = '#2F95CA', higherColor = '#885BB5' }) {
+function createSequenceSvg(keys, { size, gap, style, color, showRuler = false, segments = [], segmentGap = 8, layerGap = 24, cornerRadius = 12, lowerColor = '#2F95CA', higherColor = '#885BB5' }) {
   const padding = 8;
   const hasSegments = segments.some(segment => segment.l0 !== null || segment.l2 !== null);
-  const bandHeight = size * 0.9375;
-  const bandStroke = 2;
+  const bandHeight = size * (46 / 48);
+  const bandStroke = 3.75;
   const bandGap = layerGap;
   const operationOffset = hasSegments ? 2 * (bandHeight + bandGap) : 0;
   const width = padding * 2 + keys.length * size + Math.max(0, keys.length - 1) * gap;
@@ -100,9 +100,9 @@ function createSequenceSvg(keys, { size, gap, style, color, showRuler = false, s
         const inset = segmentGap / 2;
         lane.append(svgElement('rect', {
           x: left + inset, y, width: right - left - inset * 2, height: bandHeight,
-          rx: Math.min(6, (right - left - inset * 2) / 2, bandHeight / 2),
+          rx: Math.min(cornerRadius, (right - left - inset * 2) / 2, bandHeight / 2),
           fill: bandColor, 'fill-opacity': 0.4,
-          stroke: bandColor, 'stroke-opacity': 0.65, 'stroke-width': bandStroke
+          stroke: bandColor, 'stroke-opacity': 1, 'stroke-width': bandStroke
         }));
         index = end;
       }
@@ -137,7 +137,7 @@ function createSequenceSvg(keys, { size, gap, style, color, showRuler = false, s
     const baselineY = padding + operationOffset + size + 7;
     ruler.append(svgElement('line', {
       x1: centerX(0), x2: centerX(keys.length - 1),
-      y1: baselineY, y2: baselineY, stroke: '#000000', 'stroke-width': 1.75
+      y1: baselineY, y2: baselineY, stroke: '#000000', 'stroke-width': 2
     }));
     keys.forEach((_, index) => {
       const operationIndex = index + 1;
@@ -145,7 +145,7 @@ function createSequenceSvg(keys, { size, gap, style, color, showRuler = false, s
       const x = centerX(index);
       ruler.append(svgElement('line', {
         x1: x, x2: x, y1: baselineY, y2: baselineY + (major ? 12 : 8),
-        stroke: '#000000', 'stroke-width': 1.75
+        stroke: '#000000', 'stroke-width': 2
       }));
       if (major) {
         const label = svgElement('text', {
@@ -201,6 +201,7 @@ function render() {
   const gap = document.querySelector('#gap');
   const segmentGap = document.querySelector('#segment-gap');
   const layerGap = document.querySelector('#layer-gap');
+  const cornerRadius = document.querySelector('#corner-radius');
   if (!size.checkValidity() || !gap.checkValidity() || !size.value || !gap.value) {
     status.textContent = 'Use an icon size of 16–256 px and spacing of 0–128 px (whole numbers).';
     return empty('Adjust the icon size or spacing.');
@@ -213,7 +214,11 @@ function render() {
     status.textContent = 'Use a layer gap of 0–128 px (whole numbers).';
     return empty('Adjust the layer gap.');
   }
-  currentSvg = createSequenceSvg(keys, { size: Number(size.value), gap: Number(gap.value), style: document.querySelector('#style').value, color: document.querySelector('#color').value, showRuler: document.querySelector('#ruler').checked, segments, segmentGap: Number(segmentGap.value), layerGap: Number(layerGap.value), lowerColor: document.querySelector('#lower-color').value, higherColor: document.querySelector('#higher-color').value });
+  if (!cornerRadius.value || !cornerRadius.checkValidity()) {
+    status.textContent = 'Use a corner radius of 0–128 px (whole numbers).';
+    return empty('Adjust the corner radius.');
+  }
+  currentSvg = createSequenceSvg(keys, { size: Number(size.value), gap: Number(gap.value), style: document.querySelector('#style').value, color: document.querySelector('#color').value, showRuler: document.querySelector('#ruler').checked, segments, segmentGap: Number(segmentGap.value), layerGap: Number(layerGap.value), cornerRadius: Number(cornerRadius.value), lowerColor: document.querySelector('#lower-color').value, higherColor: document.querySelector('#higher-color').value });
   preview.append(currentSvg);
   download.disabled = false;
 }
