@@ -87,13 +87,12 @@ const templates = Object.fromEntries(Object.entries(ASSETS).map(([key, source]) 
   const root = new DOMParser().parseFromString(source, 'image/svg+xml').documentElement;
   return [key, { viewBox: root.getAttribute('viewBox'), paths: [...root.querySelectorAll('path')] }];
 }));
-function createSequenceSvg(keys, { size, gap, style, color, showRuler = false, segments = [], segmentGap = 8, layerGap = 24, cornerRadius = 12, lowerColor = '#2F95CA', higherColor = '#885BB5', showConnectors = false, connectorExtraGap = 16 }) {
+function createSequenceSvg(keys, { size, gap, style, color, showRuler = false, segments = [], segmentGap = 8, layerGap = 24, cornerRadius = 12, lowerHeight = 46, higherHeight = 46, lowerColor = '#2F95CA', higherColor = '#885BB5', showConnectors = false, connectorExtraGap = 16 }) {
   const padding = 8;
   const hasSegments = segments.some(segment => segment.l0 !== null || segment.l2 !== null);
-  const bandHeight = size * (46 / 48);
   const bandStroke = 3.75;
   const bandGap = layerGap + (showConnectors ? connectorExtraGap : 0);
-  const operationOffset = hasSegments ? 2 * (bandHeight + bandGap) : 0;
+  const operationOffset = hasSegments ? higherHeight + lowerHeight + 2 * bandGap : 0;
   const width = padding * 2 + keys.length * size + Math.max(0, keys.length - 1) * gap;
   const height = operationOffset + size + padding * 2 + (showRuler ? 58 : 0);
   // Keep large end labels inside the export without moving icons or ticks.
@@ -113,7 +112,7 @@ function createSequenceSvg(keys, { size, gap, style, color, showRuler = false, s
         const right = run.end === keys.length ? width - padding : padding + run.end * (size + gap) - gap / 2;
         return (left + right) / 2;
       };
-      const upperBottom = padding + bandHeight;
+      const upperBottom = padding + higherHeight;
       const lowerTop = upperBottom + bandGap;
       const branchY = (upperBottom + lowerTop) / 2;
       const children = segmentRuns(segments, 'l0');
@@ -126,7 +125,7 @@ function createSequenceSvg(keys, { size, gap, style, color, showRuler = false, s
         const path = `M ${parentX} ${upperBottom} V ${branchY} M ${left} ${branchY} H ${right} ` + childXs.map(x => `M ${x} ${branchY} V ${lowerTop}`).join(' ');
         connectors.append(svgElement('path', { d: path, 'data-connection': 'higher-lower' }));
       }
-      const lowerBottom = lowerTop + bandHeight;
+      const lowerBottom = lowerTop + lowerHeight;
       const iconTop = padding + operationOffset;
       const operationBranchY = (lowerBottom + iconTop) / 2;
       // Leave 2 visible pixels above the Up tip, including the round cap extent.
@@ -151,9 +150,9 @@ function createSequenceSvg(keys, { size, gap, style, color, showRuler = false, s
       if (connectors.children.length) svg.append(connectors);
     }
     // Boundaries lie halfway between operation centers; Restart occupies an empty slot.
-    for (const [level, y, bandColor] of [
-      ['l2', padding, higherColor],
-      ['l0', padding + bandHeight + bandGap, lowerColor]
+    for (const [level, y, bandColor, bandHeight] of [
+      ['l2', padding, higherColor, higherHeight],
+      ['l0', padding + higherHeight + bandGap, lowerColor, lowerHeight]
     ]) {
       const lane = svgElement('g', { 'aria-label': `${level === 'l0' ? 'Lower abstraction' : 'Higher abstraction'} segments` });
       let index = 0;
@@ -275,6 +274,8 @@ function render() {
   const segmentGap = document.querySelector('#segment-gap');
   const layerGap = document.querySelector('#layer-gap');
   const cornerRadius = document.querySelector('#corner-radius');
+  const lowerHeight = document.querySelector('#lower-height');
+  const higherHeight = document.querySelector('#higher-height');
   if (!size.checkValidity() || !gap.checkValidity() || !size.value || !gap.value) {
     status.textContent = 'Use an icon size of 16–256 px and spacing of 0–128 px (whole numbers).';
     return empty('Adjust the icon size or spacing.');
@@ -291,11 +292,15 @@ function render() {
     status.textContent = 'Use a corner radius of 0–128 px (whole numbers).';
     return empty('Adjust the corner radius.');
   }
+  if (!lowerHeight.value || !higherHeight.value || !lowerHeight.checkValidity() || !higherHeight.checkValidity()) {
+    status.textContent = 'Use lower and higher abstraction heights of 8–256 px (whole numbers).';
+    return empty('Adjust the abstraction heights.');
+  }
   if (showConnectors && (!connectorExtraGap.value || !connectorExtraGap.checkValidity())) {
     status.textContent = 'Use a connector extra gap of 0–128 px (whole numbers).';
     return empty('Adjust the connector extra gap.');
   }
-  currentSvg = createSequenceSvg(keys, { size: Number(size.value), gap: Number(gap.value), style: document.querySelector('#style').value, color: document.querySelector('#color').value, showRuler: document.querySelector('#ruler').checked, segments, segmentGap: Number(segmentGap.value), layerGap: Number(layerGap.value), cornerRadius: Number(cornerRadius.value), lowerColor: document.querySelector('#lower-color').value, higherColor: document.querySelector('#higher-color').value, showConnectors, connectorExtraGap: showConnectors ? Number(connectorExtraGap.value) : 0 });
+  currentSvg = createSequenceSvg(keys, { size: Number(size.value), gap: Number(gap.value), style: document.querySelector('#style').value, color: document.querySelector('#color').value, showRuler: document.querySelector('#ruler').checked, segments, segmentGap: Number(segmentGap.value), layerGap: Number(layerGap.value), cornerRadius: Number(cornerRadius.value), lowerHeight: Number(lowerHeight.value), higherHeight: Number(higherHeight.value), lowerColor: document.querySelector('#lower-color').value, higherColor: document.querySelector('#higher-color').value, showConnectors, connectorExtraGap: showConnectors ? Number(connectorExtraGap.value) : 0 });
   preview.append(currentSvg);
   download.disabled = false;
 }

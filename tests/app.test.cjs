@@ -37,17 +37,17 @@ for (const size of [16,48,256]) for (const gap of [0,12,128]) {
  const options={size,gap,style:'filled',color:'#555555',showRuler:true};
  const plain=createSequenceSvg(operations,options);
  const svg=createSequenceSvg(operations,{...options,segments});
- assert.ok(Math.abs(Number(svg.attrs.height)-Number(plain.attrs.height)-2 * (size * (46 / 48) + 24))<1e-9);
+ assert.ok(Math.abs(Number(svg.attrs.height)-Number(plain.attrs.height)-2 * (46 + 24))<1e-9);
  const bands=svg.children.filter(c=>c.name==='g'&&c.children[0]?.name==='rect');
  assert.equal(bands[0].children.length,4);
  assert.equal(bands[1].children.length,32);
  const icons=svg.children.filter(c=>c.name==='svg');
- assert.ok(icons.every(icon=>Number(icon.attrs.y)===8+2*(size*(46 / 48)+24)));
+ assert.ok(icons.every(icon=>Number(icon.attrs.y)===8+2*(46+24)));
  const restartX=Number(icons[18].attrs.x)+size/2;
  for(const [i,color] of ['#885BB5','#2F95CA'].entries()) for(const rect of bands[i].children){
   assert.equal(rect.attrs.fill,color);
   assert.equal(rect.attrs['fill-opacity'],'0.4');
-  assert.equal(rect.attrs.height,String(size*(46 / 48)));
+  assert.equal(rect.attrs.height,String(46));
   assert.equal(rect.attrs['stroke-width'],'3.75');
   assert.equal(rect.attrs['stroke-opacity'],'1');
   assert.equal(Number(rect.attrs.rx),Math.min(12,Number(rect.attrs.width)/2,Number(rect.attrs.height)/2));
@@ -56,7 +56,7 @@ for (const size of [16,48,256]) for (const gap of [0,12,128]) {
  const ticks=svg.children.at(-1).children.filter(c=>c.name==='line').slice(1);
  assert.ok(svg.children.at(-1).children.filter(c=>c.name==='line').every(line=>line.attrs['stroke-width']==='2'));
  assert.ok(svg.children.at(-1).children.filter(c=>c.name==='text').every(label=>label.attrs['font-size']==='28'));
- assert.equal(Number(ticks[0].attrs.y1),8+2*(size*(46 / 48)+24)+size+7);
+ assert.equal(Number(ticks[0].attrs.y1),8+2*(46+24)+size+7);
  ticks.forEach((tick,i)=>assert.equal(Number(tick.attrs.x1),Number(icons[i].attrs.x)+size/2));
  assert.equal(svg.children.at(-1).children.filter(c=>c.name==='text').length,10);
 }
@@ -68,13 +68,15 @@ console.log('Passed: range validation, gaps, adjacent segments, original 52-oper
 Element.prototype.addEventListener=function(type,callback){(this.events??={})[type]=callback;};
 Element.prototype.replaceChildren=function(...children){this.children=children;};
 Element.prototype.checkValidity=function(){return true;};
-const elements=Object.fromEntries(['sequence','l0-ranges','l2-ranges','preview','status','download','count','size','gap','segment-gap','layer-gap','corner-radius','connector-extra-gap','style','color','lower-color','higher-color','ruler','connectors','connector-gap-control','example'].map(id=>[id,new Element('div')]));
+const elements=Object.fromEntries(['sequence','l0-ranges','l2-ranges','preview','status','download','count','size','gap','segment-gap','layer-gap','corner-radius','lower-height','higher-height','connector-extra-gap','style','color','lower-color','higher-color','ruler','connectors','connector-gap-control','example'].map(id=>[id,new Element('div')]));
 for(const element of Object.values(elements))element.value='';
 Object.assign(elements.size,{value:'48'});
 Object.assign(elements.gap,{value:'12'});
 Object.assign(elements['segment-gap'],{value:'8'});
 Object.assign(elements['layer-gap'],{value:'24'});
 Object.assign(elements['corner-radius'],{value:'12'});
+Object.assign(elements['lower-height'],{value:'46'});
+Object.assign(elements['higher-height'],{value:'46'});
 Object.assign(elements['connector-extra-gap'],{value:'16'});
 Object.assign(elements.style,{value:'filled'});
 Object.assign(elements.color,{value:'#555555'});
@@ -85,7 +87,7 @@ Object.assign(elements.connectors,{checked:true});
 const uiContext=vm.createContext({DOMParser,document:{
  createElementNS:(_,name)=>new Element(name),createElement:name=>new Element(name),
  querySelector:selector=>elements[selector.slice(1)],
- querySelectorAll:()=>['sequence','l0-ranges','l2-ranges','size','gap','segment-gap','layer-gap','corner-radius','connector-extra-gap','style','color','lower-color','higher-color','ruler','connectors'].map(id=>elements[id])
+ querySelectorAll:()=>['sequence','l0-ranges','l2-ranges','size','gap','segment-gap','layer-gap','corner-radius','lower-height','higher-height','connector-extra-gap','style','color','lower-color','higher-color','ruler','connectors'].map(id=>elements[id])
 }});
 vm.runInContext(fs.readFileSync(require('node:path').join(__dirname,'../app.js'),'utf8'),uiContext);
 assert.equal(elements.sequence.value,SEQUENCE_EXAMPLE.operations);
@@ -231,3 +233,29 @@ elements.connectors.checked=true;elements.connectors.events.input();
 assert.equal(elements.download.disabled,true);
 assert.ok(elements.status.textContent.includes('connector extra gap'));
 console.log('Passed: connector extra gap input, conditional visibility, retained value, live geometry, and enabled-only validation.');
+for(const [lowerHeight,higherHeight] of [[8,80],[24,70],[120,16]]){
+ const svg=createSequenceSvg(operations,{size:48,gap:12,style:'filled',color:'#555',segments,showConnectors:true,showRuler:true,lowerHeight,higherHeight});
+ const lower=svg.children.find(c=>c.attrs['aria-label']==='Lower abstraction segments').children[0];
+ const higher=svg.children.find(c=>c.attrs['aria-label']==='Higher abstraction segments').children[0];
+ const icon=svg.children.find(c=>c.name==='svg');
+ assert.equal(Number(lower.attrs.height),lowerHeight);
+ assert.equal(Number(higher.attrs.height),higherHeight);
+ assert.equal(Number(lower.attrs.y),8+higherHeight+40);
+ assert.equal(Number(icon.attrs.y),8+higherHeight+lowerHeight+80);
+ const branches=svg.children.find(c=>c.attrs['aria-label']==='Abstraction hierarchy connectors').children;
+ const upper=branches.filter(path=>path.attrs['data-connection']==='higher-lower');
+ const lowerConnections=branches.filter(path=>path.attrs['data-connection']==='lower-operation');
+ assert.ok(upper.every(path=>path.attrs.d.startsWith(`M ${path.attrs.d.split(' ')[1]} ${8+higherHeight} V`)));
+ assert.ok(lowerConnections.every(path=>path.attrs.d.startsWith(`M ${path.attrs.d.split(' ')[1]} ${8+higherHeight+40+lowerHeight} V`)));
+}
+elements['connector-extra-gap'].value='16';
+elements['lower-height'].value='24';elements['higher-height'].value='70';
+elements.example.events.click();
+assert.equal(elements.download.disabled,false);
+const independent=elements.preview.children[0];
+assert.equal(independent.children.find(c=>c.attrs['aria-label']==='Lower abstraction segments').children[0].attrs.height,'24');
+assert.equal(independent.children.find(c=>c.attrs['aria-label']==='Higher abstraction segments').children[0].attrs.height,'70');
+elements['lower-height'].value='';elements['lower-height'].events.input();
+assert.equal(elements.download.disabled,true);
+assert.ok(elements.status.textContent.includes('abstraction heights'));
+console.log('Passed: independent abstraction heights, connector origins, live controls, and height validation.');

@@ -50,7 +50,9 @@ The appearance controls update both the preview and downloaded SVG:
 | Control | Default | Effect |
 |---|---|---|
 | Default arrow style | Filled | Style of movement tokens without a prefix |
-| Icon size | 48 px | Icon dimensions; each abstraction layer is 95.83% of this height |
+| Icon size | 48 px | Operation icon dimensions |
+| Lower abstraction height | 46 px | Independent height of the lower rectangles |
+| Higher abstraction height | 46 px | Independent height of the higher rectangles |
 | Spacing | 12 px | Horizontal gap between icon boxes |
 | Segment gap | 8 px | Horizontal gap between adjacent segment rectangles |
 | Layer gap | 24 px | Vertical spacing between higher/lower abstraction and lower abstraction/icon boxes |
@@ -62,7 +64,7 @@ The appearance controls update both the preview and downloaded SVG:
 | Show operation index ruler | Enabled | Include centered ticks and every-fifth-operation labels |
 | Show hierarchy connectors | Enabled | Gray branches connecting higher segments to lower segments and lower segments to operations |
 
-The SVG places Lower abstraction above the operations and Higher abstraction above Lower abstraction. Both lanes have rounded corners (up to 12 px radius) and 3.75 px outlines, and are 95.83% of the selected icon size in height (46 px by default), with Lower abstraction defaulting to `#2F95CA` and Higher abstraction to `#885BB5` at 40% fill opacity. Separate **Lower abstraction color** and **Higher abstraction color** pickers update the fill and outline colors in both preview and export. Segment IDs, visible titles, layer labels, legends, and Restart guide lines are omitted from the image; only ruler tick labels remain. Preview and download use the same SVG.
+The SVG places Lower abstraction above the operations and Higher abstraction above Lower abstraction. Both lanes have rounded corners (up to 12 px radius) and 3.75 px outlines, and have independently editable heights (46 px each by default), with Lower abstraction defaulting to `#2F95CA` and Higher abstraction to `#885BB5` at 40% fill opacity. Separate **Lower abstraction color** and **Higher abstraction color** pickers update the fill and outline colors in both preview and export. Segment IDs, visible titles, layer labels, legends, and Restart guide lines are omitted from the image; only ruler tick labels remain. Preview and download use the same SVG.
 
 Mix arrow styles by prefixing any movement key with `f-` (filled) or `h-` (hollow), for example `f-up, h-right, h-W, f-←, undo`. The longer `filled-` and `hollow-` prefixes also work. Unprefixed movement keys use the default arrow style selector. Undo and restart do not take style prefixes.
 
@@ -80,7 +82,7 @@ Enabling hierarchy connectors reveals **Connector extra gap** (0–128 px, defau
 
 **Show hierarchy connectors** draws fully opaque gray (`#a6a6a6`) branches with 2.5 px strokes between all three layers, behind their rectangles and icons, in both preview and export. Lower segments wholly outside the higher ranges have no higher-level connection but still connect to their own operations. A lower segment that intersects a higher range must fit entirely within one higher segment; crossing a higher boundary shows an error asking you to fix the ranges or turn connectors off. Restart stays disconnected. Each lower segment branches to its member operations, with all operation branches stopping 2 visible pixels above the top of an Up arrow, accounting for their rounded stroke ends. Empty layers produce no connections for that level.
 
-At the default settings, both rectangles are 46 px high with 24 px layer gaps. Their fills use 40% opacity and their outlines are fully opaque. The color pickers change the underlying colors while these opacity settings remain fixed.
+**Lower abstraction height** and **Higher abstraction height** independently control rectangle heights (8–256 px). Changing icon size no longer changes the abstraction heights. Connectors, lower-layer positions, operations, ruler, and export bounds adapt to the selected heights. At the default settings, both rectangles are 46 px high with 24 px layer gaps. Their fills use 40% opacity and their outlines are fully opaque. The color pickers change the underlying colors while these opacity settings remain fixed.
 
 The download has a transparent background and contains vector shapes without external image references. All input is processed locally in the browser.
 
