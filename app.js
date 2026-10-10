@@ -65,16 +65,20 @@ const templates = Object.fromEntries(Object.entries(ASSETS).map(([key, source]) 
   const root = new DOMParser().parseFromString(source, 'image/svg+xml').documentElement;
   return [key, { viewBox: root.getAttribute('viewBox'), paths: [...root.querySelectorAll('path')] }];
 }));
-function createSequenceSvg(keys, { size, gap, style, color, showRuler = false, segments = [], segmentGap = 8, lowerColor = '#3B8FBD', higherColor = '#7D5BA3' }) {
+function createSequenceSvg(keys, { size, gap, style, color, showRuler = false, segments = [], segmentGap = 8, layerGap = 24, lowerColor = '#2F95CA', higherColor = '#885BB5' }) {
   const padding = 8;
   const hasSegments = segments.some(segment => segment.l0 !== null || segment.l2 !== null);
-  const bandHeight = size * 0.875;
+  const bandHeight = size * 0.9375;
   const bandStroke = 2;
-  const bandGap = 13 + bandStroke;
+  const bandGap = layerGap;
   const operationOffset = hasSegments ? 2 * (bandHeight + bandGap) : 0;
   const width = padding * 2 + keys.length * size + Math.max(0, keys.length - 1) * gap;
-  const height = operationOffset + size + padding * 2 + (showRuler ? 42 : 0);
-  const svg = svgElement('svg', { xmlns: NS, width, height, viewBox: `0 0 ${width} ${height}`, role: 'img', 'aria-label': `Keypress sequence: ${keys.join(', ')}` });
+  const height = operationOffset + size + padding * 2 + (showRuler ? 58 : 0);
+  // Keep large end labels inside the export without moving icons or ticks.
+  const labelDigits = String(Math.floor(keys.length / 5) * 5).length;
+  const labelMargin = showRuler && keys.length >= 5 ? Math.max(0, Math.ceil(labelDigits * 28 * 0.6 / 2 - padding - size / 2)) : 0;
+  const exportWidth = width + 2 * labelMargin;
+  const svg = svgElement('svg', { xmlns: NS, width: exportWidth, height, viewBox: `${-labelMargin} 0 ${exportWidth} ${height}`, role: 'img', 'aria-label': `Keypress sequence: ${keys.join(', ')}` });
   const title = svgElement('title');
   title.textContent = `Keypress sequence: ${keys.join(', ')}`;
   svg.append(title);
@@ -97,7 +101,7 @@ function createSequenceSvg(keys, { size, gap, style, color, showRuler = false, s
         lane.append(svgElement('rect', {
           x: left + inset, y, width: right - left - inset * 2, height: bandHeight,
           rx: Math.min(6, (right - left - inset * 2) / 2, bandHeight / 2),
-          fill: bandColor, 'fill-opacity': 0.35,
+          fill: bandColor, 'fill-opacity': 0.4,
           stroke: bandColor, 'stroke-opacity': 0.65, 'stroke-width': bandStroke
         }));
         index = end;
@@ -112,7 +116,7 @@ function createSequenceSvg(keys, { size, gap, style, color, showRuler = false, s
     const arrowStyle = styled ? styled[1] : style;
     const isArrow = Object.hasOwn(rotations, key);
     const template = templates[isArrow ? `${arrowStyle}-arrow` : key];
-    const icon = svgElement('svg', { x: padding + index * (size + gap), y: padding + operationOffset - 3, width: size, height: size, viewBox: '0 0 40 40' });
+    const icon = svgElement('svg', { x: padding + index * (size + gap), y: padding + operationOffset, width: size, height: size, viewBox: '0 0 40 40' });
     const rotation = svgElement('g', { transform: `rotate(${isArrow ? rotations[key] : 0} 20 20)` });
     // Keep the source viewBox intact inside the centered rotation frame.
     const source = svgElement('svg', { width: 40, height: 40, viewBox: template.viewBox });
@@ -130,10 +134,10 @@ function createSequenceSvg(keys, { size, gap, style, color, showRuler = false, s
   if (showRuler && keys.length) {
     const ruler = svgElement('g', { 'aria-label': 'Operation index ruler, starting at 1' });
     const centerX = index => padding + index * (size + gap) + size / 2;
-    const baselineY = padding + operationOffset + size + 4;
+    const baselineY = padding + operationOffset + size + 7;
     ruler.append(svgElement('line', {
       x1: centerX(0), x2: centerX(keys.length - 1),
-      y1: baselineY, y2: baselineY, stroke: '#000000', 'stroke-width': 1
+      y1: baselineY, y2: baselineY, stroke: '#000000', 'stroke-width': 1.75
     }));
     keys.forEach((_, index) => {
       const operationIndex = index + 1;
@@ -141,12 +145,12 @@ function createSequenceSvg(keys, { size, gap, style, color, showRuler = false, s
       const x = centerX(index);
       ruler.append(svgElement('line', {
         x1: x, x2: x, y1: baselineY, y2: baselineY + (major ? 12 : 8),
-        stroke: '#000000', 'stroke-width': 1
+        stroke: '#000000', 'stroke-width': 1.75
       }));
       if (major) {
         const label = svgElement('text', {
-          x, y: baselineY + 26, fill: '#000000', 'text-anchor': 'middle',
-          'font-family': 'Arial, sans-serif', 'font-size': 16
+          x, y: baselineY + 44, fill: '#000000', 'text-anchor': 'middle',
+          'font-family': 'Arial, sans-serif', 'font-size': 28
         });
         label.textContent = operationIndex;
         ruler.append(label);
@@ -196,6 +200,7 @@ function render() {
   const size = document.querySelector('#size');
   const gap = document.querySelector('#gap');
   const segmentGap = document.querySelector('#segment-gap');
+  const layerGap = document.querySelector('#layer-gap');
   if (!size.checkValidity() || !gap.checkValidity() || !size.value || !gap.value) {
     status.textContent = 'Use an icon size of 16–256 px and spacing of 0–128 px (whole numbers).';
     return empty('Adjust the icon size or spacing.');
@@ -204,7 +209,11 @@ function render() {
     status.textContent = `Use a segment gap of 0–${Math.min(128, Number(size.value) - 2)} px (whole numbers).`;
     return empty('Adjust the segment gap.');
   }
-  currentSvg = createSequenceSvg(keys, { size: Number(size.value), gap: Number(gap.value), style: document.querySelector('#style').value, color: document.querySelector('#color').value, showRuler: document.querySelector('#ruler').checked, segments, segmentGap: Number(segmentGap.value), lowerColor: document.querySelector('#lower-color').value, higherColor: document.querySelector('#higher-color').value });
+  if (!layerGap.value || !layerGap.checkValidity()) {
+    status.textContent = 'Use a layer gap of 0–128 px (whole numbers).';
+    return empty('Adjust the layer gap.');
+  }
+  currentSvg = createSequenceSvg(keys, { size: Number(size.value), gap: Number(gap.value), style: document.querySelector('#style').value, color: document.querySelector('#color').value, showRuler: document.querySelector('#ruler').checked, segments, segmentGap: Number(segmentGap.value), layerGap: Number(layerGap.value), lowerColor: document.querySelector('#lower-color').value, higherColor: document.querySelector('#higher-color').value });
   preview.append(currentSvg);
   download.disabled = false;
 }

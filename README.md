@@ -50,15 +50,16 @@ The appearance controls update both the preview and downloaded SVG:
 | Control | Default | Effect |
 |---|---|---|
 | Default arrow style | Filled | Style of movement tokens without a prefix |
-| Icon size | 48 px | Icon dimensions; each abstraction layer is 87.5% of this height |
+| Icon size | 48 px | Icon dimensions; each abstraction layer is 93.75% of this height |
 | Spacing | 12 px | Horizontal gap between icon boxes |
 | Segment gap | 8 px | Horizontal gap between adjacent segment rectangles |
+| Layer gap | 24 px | Vertical spacing between higher/lower abstraction and lower abstraction/icon boxes |
 | Icon color | `#62696b` | Movement, undo, and restart icon color |
-| Lower abstraction color | `#3B8FBD` | Lower layer fill and outline color |
-| Higher abstraction color | `#7D5BA3` | Higher layer fill and outline color |
+| Lower abstraction color | `#2F95CA` | Lower layer fill and outline color |
+| Higher abstraction color | `#885BB5` | Higher layer fill and outline color |
 | Show operation index ruler | Enabled | Include centered ticks and every-fifth-operation labels |
 
-The SVG places Lower abstraction above the operations and Higher abstraction above Lower abstraction. Both lanes have rounded corners (up to 6 px radius) and 2 px outlines, and are 87.5% of the selected icon size in height (42 px by default), with Lower abstraction defaulting to `#3B8FBD` and Higher abstraction to `#7D5BA3` at 35% fill opacity. Separate **Lower abstraction color** and **Higher abstraction color** pickers update the fill and outline colors in both preview and export. Segment IDs, visible titles, layer labels, legends, and Restart guide lines are omitted from the image; only ruler tick labels remain. Preview and download use the same SVG.
+The SVG places Lower abstraction above the operations and Higher abstraction above Lower abstraction. Both lanes have rounded corners (up to 6 px radius) and 2 px outlines, and are 93.75% of the selected icon size in height (45 px by default), with Lower abstraction defaulting to `#2F95CA` and Higher abstraction to `#885BB5` at 40% fill opacity. Separate **Lower abstraction color** and **Higher abstraction color** pickers update the fill and outline colors in both preview and export. Segment IDs, visible titles, layer labels, legends, and Restart guide lines are omitted from the image; only ruler tick labels remain. Preview and download use the same SVG.
 
 Mix arrow styles by prefixing any movement key with `f-` (filled) or `h-` (hollow), for example `f-up, h-right, h-W, f-←, undo`. The longer `filled-` and `hollow-` prefixes also work. Unprefixed movement keys use the default arrow style selector. Undo and restart do not take style prefixes.
 
@@ -68,9 +69,15 @@ Choose the default arrow style, icon size, spacing, and color. Unknown keys prev
 
 Operation SVG boxes share the same vertical position and retain their internal padding. This gives the visible arrow shapes more space below Lower abstraction than the gap between the two rectangle layers.
 
+**Layer gap** adjusts both vertical gaps together (0–128 px). It is measured between the layer boxes; icon padding and rectangle outlines affect the visible shape-to-shape distance. Changing this setting moves the operation row and its ruler together and updates the export height.
+
+At the default settings, both rectangles are 45 px high with 24 px layer gaps. Their fills use 40% opacity and their outlines use 65% opacity. The color pickers change the underlying colors while these opacity settings remain fixed.
+
 The download has a transparent background and contains vector shapes without external image references. All input is processed locally in the browser.
 
-Enable **Show operation index ruler** to include a ruler below the icons, in both the preview and downloaded SVG. Indexing starts at 1 and counts every token, including undo and restart. Each tick aligns with its icon's center; minor ticks are 8 px long, and every fifth tick is 12 px long and labeled (5, 10, 15, …). All ticks have a 1 px stroke; labels are 16 px. The ruler and its labels are black and stay aligned when size or spacing changes. It is shown by default and can be disabled with the checkbox. The horizontal axis represents operation order, rather than elapsed time.
+Enable **Show operation index ruler** to include a ruler below the icons, in both the preview and downloaded SVG. Indexing starts at 1 and counts every token, including undo and restart. Each tick aligns with its icon's center; minor ticks are 8 px long, and every fifth tick is 12 px long and labeled (5, 10, 15, …). The baseline and all ticks have a 1.75 px stroke; labels are 28 px. The ruler and its labels are black and stay aligned when size or spacing changes. It is shown by default and can be disabled with the checkbox. The horizontal axis represents operation order, rather than elapsed time.
+
+The export reserves space below the larger labels and adds horizontal margins when needed to keep end labels inside the SVG. These margins do not change icon centers or tick alignment.
 
 ## Project files
 
