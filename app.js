@@ -8,7 +8,7 @@ const ASSETS = {
 const SEQUENCE_EXAMPLE = {
   "operations": "h-right, h-left, h-up, f-up, f-up, f-up, f-up, f-up, h-left, h-up, f-right, f-right, f-right, f-right, f-right, f-right, f-right, f-right, restart, h-up, f-up, f-up, f-up, f-up, f-up, h-left, h-left, h-left, h-left, h-left, h-up, f-right, f-right, f-right, f-right, f-right, f-right, f-right, f-right, f-right, f-right, f-right, f-right, f-right, h-down, h-down, h-down, h-down, h-right, h-right, h-right, f-right",
   "l0": "1-4, 5, 6, 7, 8, 9-11, 12, 13, 14, 15, 16, 17, 18, 20-21, 22, 23, 24, 25, 26-32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45-52",
-  "l2": "1-18, 20-25, 26-44, 45-52"
+  "l2": "1-18, 20-40, 41-44, 45-52"
 };
 const NS = 'http://www.w3.org/2000/svg';
 const aliases = {
@@ -56,6 +56,28 @@ function parseSegmentRanges(keys, l0Text, l2Text) {
   if (l0.error || l2.error) return { error: l0.error || l2.error };
   return { segments: keys.map((_, index) => ({ l0: l0.assignments[index], l2: l2.assignments[index] })) };
 }
+function segmentRuns(segments, level) {
+  const runs = [];
+  for (let start = 0; start < segments.length;) {
+    const id = segments[start][level];
+    if (id == null) { start++; continue; }
+    let end = start + 1;
+    while (end < segments.length && segments[end][level] === id) end++;
+    runs.push({ start, end, id });
+    start = end;
+  }
+  return runs;
+}
+function hierarchyError(segments) {
+  if (!segments.some(segment => segment.l0 != null) || !segments.some(segment => segment.l2 != null)) return null;
+  for (const child of segmentRuns(segments, 'l0')) {
+    const parentIds = new Set(segments.slice(child.start, child.end).map(segment => segment.l2));
+    if (parentIds.size !== 1) {
+      return `Lower abstraction: segment ${child.start + 1}–${child.end} must fit entirely inside one higher abstraction segment to show hierarchy connectors. Adjust the ranges or turn connectors off.`;
+    }
+  }
+  return null;
+}
 function svgElement(name, attributes = {}) {
   const element = document.createElementNS(NS, name);
   for (const [key, value] of Object.entries(attributes)) element.setAttribute(key, value);
@@ -65,12 +87,12 @@ const templates = Object.fromEntries(Object.entries(ASSETS).map(([key, source]) 
   const root = new DOMParser().parseFromString(source, 'image/svg+xml').documentElement;
   return [key, { viewBox: root.getAttribute('viewBox'), paths: [...root.querySelectorAll('path')] }];
 }));
-function createSequenceSvg(keys, { size, gap, style, color, showRuler = false, segments = [], segmentGap = 8, layerGap = 24, cornerRadius = 12, lowerColor = '#2F95CA', higherColor = '#885BB5' }) {
+function createSequenceSvg(keys, { size, gap, style, color, showRuler = false, segments = [], segmentGap = 8, layerGap = 24, cornerRadius = 12, lowerColor = '#2F95CA', higherColor = '#885BB5', showConnectors = false, connectorExtraGap = 16 }) {
   const padding = 8;
   const hasSegments = segments.some(segment => segment.l0 !== null || segment.l2 !== null);
   const bandHeight = size * (46 / 48);
   const bandStroke = 3.75;
-  const bandGap = layerGap;
+  const bandGap = layerGap + (showConnectors ? connectorExtraGap : 0);
   const operationOffset = hasSegments ? 2 * (bandHeight + bandGap) : 0;
   const width = padding * 2 + keys.length * size + Math.max(0, keys.length - 1) * gap;
   const height = operationOffset + size + padding * 2 + (showRuler ? 58 : 0);
@@ -83,6 +105,51 @@ function createSequenceSvg(keys, { size, gap, style, color, showRuler = false, s
   title.textContent = `Keypress sequence: ${keys.join(', ')}`;
   svg.append(title);
   if (hasSegments) {
+    if (showConnectors && bandGap > bandStroke && !hierarchyError(segments)) {
+      const connectorStroke = 2.5;
+      const connectors = svgElement('g', { 'aria-label': 'Abstraction hierarchy connectors', fill: 'none', stroke: '#a6a6a6', 'stroke-opacity': 1, 'stroke-width': connectorStroke, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' });
+      const center = run => {
+        const left = run.start === 0 ? padding : padding + run.start * (size + gap) - gap / 2;
+        const right = run.end === keys.length ? width - padding : padding + run.end * (size + gap) - gap / 2;
+        return (left + right) / 2;
+      };
+      const upperBottom = padding + bandHeight;
+      const lowerTop = upperBottom + bandGap;
+      const branchY = (upperBottom + lowerTop) / 2;
+      const children = segmentRuns(segments, 'l0');
+      for (const parent of segmentRuns(segments, 'l2')) {
+        const members = children.filter(child => child.start >= parent.start && child.end <= parent.end);
+        if (!members.length) continue;
+        const parentX = center(parent);
+        const childXs = members.map(center);
+        const left = Math.min(parentX, ...childXs), right = Math.max(parentX, ...childXs);
+        const path = `M ${parentX} ${upperBottom} V ${branchY} M ${left} ${branchY} H ${right} ` + childXs.map(x => `M ${x} ${branchY} V ${lowerTop}`).join(' ');
+        connectors.append(svgElement('path', { d: path, 'data-connection': 'higher-lower' }));
+      }
+      const lowerBottom = lowerTop + bandHeight;
+      const iconTop = padding + operationOffset;
+      const operationBranchY = (lowerBottom + iconTop) / 2;
+      // Leave 2 visible pixels above the Up tip, including the round cap extent.
+      const operationEndpointY = iconTop + 2.444697 * size / 40 - 2 - connectorStroke / 2;
+      for (const parent of children) {
+        const operations = [];
+        for (let index = parent.start; index < parent.end; index++) {
+          const key = keys[index].replace(/^(filled|hollow)-/, '');
+          if (key === 'restart') continue;
+          operations.push({
+            x: padding + index * (size + gap) + size / 2,
+            y: operationEndpointY
+          });
+        }
+        if (!operations.length) continue;
+        const parentX = center(parent);
+        const left = Math.min(parentX, ...operations.map(operation => operation.x));
+        const right = Math.max(parentX, ...operations.map(operation => operation.x));
+        const path = `M ${parentX} ${lowerBottom} V ${operationBranchY} M ${left} ${operationBranchY} H ${right} ` + operations.map(operation => `M ${operation.x} ${operationBranchY} V ${operation.y}`).join(' ');
+        connectors.append(svgElement('path', { d: path, 'data-connection': 'lower-operation' }));
+      }
+      if (connectors.children.length) svg.append(connectors);
+    }
     // Boundaries lie halfway between operation centers; Restart occupies an empty slot.
     for (const [level, y, bandColor] of [
       ['l2', padding, higherColor],
@@ -172,7 +239,13 @@ function render() {
   download.disabled = true;
   preview.replaceChildren();
   const { tokens, unknown, keys } = parseSequence(input.value);
-  const { segments, error } = parseSegmentRanges(keys, l0Input.value, l2Input.value);
+  const parsed = parseSegmentRanges(keys, l0Input.value, l2Input.value);
+  const segments = parsed.segments;
+  const showConnectors = document.querySelector('#connectors').checked;
+  const connectorExtraGap = document.querySelector('#connector-extra-gap');
+  document.querySelector('#connector-gap-control').hidden = !showConnectors;
+  connectorExtraGap.disabled = !showConnectors;
+  const error = parsed.error || (showConnectors ? hierarchyError(segments) : null);
   document.querySelector('#count').textContent = `${tokens.length} ${tokens.length === 1 ? 'keypress' : 'keypresses'}`;
   status.textContent = '';
   input.setAttribute('aria-invalid', String(unknown.length > 0));
@@ -218,7 +291,11 @@ function render() {
     status.textContent = 'Use a corner radius of 0–128 px (whole numbers).';
     return empty('Adjust the corner radius.');
   }
-  currentSvg = createSequenceSvg(keys, { size: Number(size.value), gap: Number(gap.value), style: document.querySelector('#style').value, color: document.querySelector('#color').value, showRuler: document.querySelector('#ruler').checked, segments, segmentGap: Number(segmentGap.value), layerGap: Number(layerGap.value), cornerRadius: Number(cornerRadius.value), lowerColor: document.querySelector('#lower-color').value, higherColor: document.querySelector('#higher-color').value });
+  if (showConnectors && (!connectorExtraGap.value || !connectorExtraGap.checkValidity())) {
+    status.textContent = 'Use a connector extra gap of 0–128 px (whole numbers).';
+    return empty('Adjust the connector extra gap.');
+  }
+  currentSvg = createSequenceSvg(keys, { size: Number(size.value), gap: Number(gap.value), style: document.querySelector('#style').value, color: document.querySelector('#color').value, showRuler: document.querySelector('#ruler').checked, segments, segmentGap: Number(segmentGap.value), layerGap: Number(layerGap.value), cornerRadius: Number(cornerRadius.value), lowerColor: document.querySelector('#lower-color').value, higherColor: document.querySelector('#higher-color').value, showConnectors, connectorExtraGap: showConnectors ? Number(connectorExtraGap.value) : 0 });
   preview.append(currentSvg);
   download.disabled = false;
 }

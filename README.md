@@ -37,7 +37,7 @@ Higher abstraction ranges: 1-2, 4-6
 
 Enter only the values after each colon in the corresponding field. Each comma-separated range is one distinct segment; a single number creates a one-operation segment. Range endpoints are inclusive and use operation indices starting at 1. Spaces or line breaks can also separate ranges. Adjacent ranges remain separate segments. Overlapping, reversed, or out-of-bounds ranges prevent export and show an error. Restart counts as an operation but must be excluded from all ranges; split any range around it. Leaving a range field empty omits its segments, and unlisted operations leave gaps. Inputs do not require Markdown tables or segment IDs.
 
-The 52-operation example loads on page opening; **Try an example** restores all three sequence/range fields and leaves appearance settings as selected. Its higher abstraction ranges are `1-18, 20-25, 26-44, 45-52`, with Restart at operation 19. Its 32 lower abstraction ranges are:
+The 52-operation example loads on page opening; **Try an example** restores all three sequence/range fields and leaves appearance settings as selected. Its higher abstraction ranges are `1-18, 20-40, 41-44, 45-52`, with Restart at operation 19. Its 32 lower abstraction ranges are:
 
 ```text
 1-4, 5, 6, 7, 8, 9-11, 12, 13, 14, 15, 16, 17, 18, 20-21, 22, 23, 24, 25, 26-32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45-52
@@ -54,11 +54,13 @@ The appearance controls update both the preview and downloaded SVG:
 | Spacing | 12 px | Horizontal gap between icon boxes |
 | Segment gap | 8 px | Horizontal gap between adjacent segment rectangles |
 | Layer gap | 24 px | Vertical spacing between higher/lower abstraction and lower abstraction/icon boxes |
+| Connector extra gap | 16 px | Added to both layer gaps when connectors are enabled; hidden when disabled |
 | Corner radius | 12 px | Corner radius of both abstraction layers, limited to half the rectangle width/height |
 | Icon color | `#62696b` | Movement, undo, and restart icon color |
 | Lower abstraction color | `#2F95CA` | Lower layer fill and outline color |
 | Higher abstraction color | `#885BB5` | Higher layer fill and outline color |
 | Show operation index ruler | Enabled | Include centered ticks and every-fifth-operation labels |
+| Show hierarchy connectors | Enabled | Gray branches connecting higher segments to lower segments and lower segments to operations |
 
 The SVG places Lower abstraction above the operations and Higher abstraction above Lower abstraction. Both lanes have rounded corners (up to 12 px radius) and 3.75 px outlines, and are 95.83% of the selected icon size in height (46 px by default), with Lower abstraction defaulting to `#2F95CA` and Higher abstraction to `#885BB5` at 40% fill opacity. Separate **Lower abstraction color** and **Higher abstraction color** pickers update the fill and outline colors in both preview and export. Segment IDs, visible titles, layer labels, legends, and Restart guide lines are omitted from the image; only ruler tick labels remain. Preview and download use the same SVG.
 
@@ -72,7 +74,11 @@ Operation SVG boxes share the same vertical position and retain their internal p
 
 **Layer gap** adjusts both vertical gaps together (0–128 px). It is measured between the layer boxes; icon padding and rectangle outlines affect the visible shape-to-shape distance. Changing this setting moves the operation row and its ruler together and updates the export height.
 
+Enabling hierarchy connectors reveals **Connector extra gap** (0–128 px, default 16 px). It adds to each vertical gap on top of **Layer gap**, so the default effective gap is 40 px. Turning connectors off hides the extra-gap field and uses only **Layer gap**. The extra-gap value is retained for the next time connectors are enabled. Both preview and export update immediately.
+
 **Corner radius** adjusts both abstraction layers together (0–128 px). Set it to 0 for square corners. The effective radius is limited to half the rectangle width or height so narrow segments remain valid. It updates both preview and export.
+
+**Show hierarchy connectors** draws fully opaque gray (`#a6a6a6`) branches with 2.5 px strokes between all three layers, behind their rectangles and icons, in both preview and export. Lower segments wholly outside the higher ranges have no higher-level connection but still connect to their own operations. A lower segment that intersects a higher range must fit entirely within one higher segment; crossing a higher boundary shows an error asking you to fix the ranges or turn connectors off. Restart stays disconnected. Each lower segment branches to its member operations, with all operation branches stopping 2 visible pixels above the top of an Up arrow, accounting for their rounded stroke ends. Empty layers produce no connections for that level.
 
 At the default settings, both rectangles are 46 px high with 24 px layer gaps. Their fills use 40% opacity and their outlines are fully opaque. The color pickers change the underlying colors while these opacity settings remain fixed.
 

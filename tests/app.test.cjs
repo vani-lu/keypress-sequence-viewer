@@ -32,7 +32,7 @@ function lengths(level){
  return [...counts.values()];
 }
 assert.deepEqual(lengths('l0'),[4,1,1,1,1,3,...Array(7).fill(1),2,...Array(4).fill(1),7,...Array(12).fill(1),8]);
-assert.deepEqual(lengths('l2'),[18,6,19,8]);
+assert.deepEqual(lengths('l2'),[18,21,4,8]);
 for (const size of [16,48,256]) for (const gap of [0,12,128]) {
  const options={size,gap,style:'filled',color:'#555555',showRuler:true};
  const plain=createSequenceSvg(operations,options);
@@ -68,22 +68,24 @@ console.log('Passed: range validation, gaps, adjacent segments, original 52-oper
 Element.prototype.addEventListener=function(type,callback){(this.events??={})[type]=callback;};
 Element.prototype.replaceChildren=function(...children){this.children=children;};
 Element.prototype.checkValidity=function(){return true;};
-const elements=Object.fromEntries(['sequence','l0-ranges','l2-ranges','preview','status','download','count','size','gap','segment-gap','layer-gap','corner-radius','style','color','lower-color','higher-color','ruler','example'].map(id=>[id,new Element('div')]));
+const elements=Object.fromEntries(['sequence','l0-ranges','l2-ranges','preview','status','download','count','size','gap','segment-gap','layer-gap','corner-radius','connector-extra-gap','style','color','lower-color','higher-color','ruler','connectors','connector-gap-control','example'].map(id=>[id,new Element('div')]));
 for(const element of Object.values(elements))element.value='';
 Object.assign(elements.size,{value:'48'});
 Object.assign(elements.gap,{value:'12'});
 Object.assign(elements['segment-gap'],{value:'8'});
 Object.assign(elements['layer-gap'],{value:'24'});
 Object.assign(elements['corner-radius'],{value:'12'});
+Object.assign(elements['connector-extra-gap'],{value:'16'});
 Object.assign(elements.style,{value:'filled'});
 Object.assign(elements.color,{value:'#555555'});
 Object.assign(elements['lower-color'],{value:'#2F95CA'});
 Object.assign(elements['higher-color'],{value:'#885BB5'});
 Object.assign(elements.ruler,{checked:true});
+Object.assign(elements.connectors,{checked:true});
 const uiContext=vm.createContext({DOMParser,document:{
  createElementNS:(_,name)=>new Element(name),createElement:name=>new Element(name),
  querySelector:selector=>elements[selector.slice(1)],
- querySelectorAll:()=>['sequence','l0-ranges','l2-ranges','size','gap','segment-gap','layer-gap','corner-radius','style','color','lower-color','higher-color','ruler'].map(id=>elements[id])
+ querySelectorAll:()=>['sequence','l0-ranges','l2-ranges','size','gap','segment-gap','layer-gap','corner-radius','connector-extra-gap','style','color','lower-color','higher-color','ruler','connectors'].map(id=>elements[id])
 }});
 vm.runInContext(fs.readFileSync(require('node:path').join(__dirname,'../app.js'),'utf8'),uiContext);
 assert.equal(elements.sequence.value,SEQUENCE_EXAMPLE.operations);
@@ -141,7 +143,7 @@ for(const layerGap of [0,12,24,64,128]){
 elements['layer-gap'].value='36';elements['layer-gap'].events.input();
 assert.equal(elements.download.disabled,false);
 const resized=elements.preview.children[0];
-assert.equal(Number(resized.children.find(c=>c.name==='svg').attrs.y),8+2*(46+36));
+assert.equal(Number(resized.children.find(c=>c.name==='svg').attrs.y),8+2*(46+36+16));
 elements['layer-gap'].value='';elements['layer-gap'].events.input();
 assert.equal(elements.download.disabled,true);
 console.log('Passed: editable vertical layer gaps, live updates, and ruler-relative positioning.');
@@ -160,3 +162,72 @@ elements['corner-radius'].value='';elements['corner-radius'].events.input();
 assert.equal(elements.download.disabled,true);
 assert.ok(elements.status.textContent.includes('corner radius'));
 console.log('Passed: editable corner radius, zero/saturated radius bounds, and live control validation.');
+vm.runInContext('globalThis.api.hierarchyError = hierarchyError;',context);
+const hierarchyError=context.api.hierarchyError;
+assert.equal(hierarchyError(segments),null);
+const invalid=parseSegmentRanges(parseSequence('up up up up').keys,'1-3','1-2,3-4');
+assert.ok(hierarchyError(invalid.segments));
+assert.ok(hierarchyError(parseSegmentRanges(['up','up'],'1-2','1').segments));
+assert.equal(hierarchyError(parseSegmentRanges(['up','up'],'1-2','').segments),null);
+const tree=createSequenceSvg(operations,{size:48,gap:12,style:'filled',color:'#62696b',segments,showConnectors:true});
+const connectorGroup=tree.children.find(c=>c.attrs['aria-label']==='Abstraction hierarchy connectors');
+assert.equal(connectorGroup.children.length,36);
+const upperPaths=connectorGroup.children.filter(path=>path.attrs['data-connection']==='higher-lower');
+const lowerPaths=connectorGroup.children.filter(path=>path.attrs['data-connection']==='lower-operation');
+assert.equal(upperPaths.length,4);
+assert.equal(lowerPaths.length,32);
+assert.equal(lowerPaths.reduce((sum,path)=>sum+path.attrs.d.match(/ V /g).length-1,0),51);
+assert.equal(connectorGroup.attrs.stroke,'#a6a6a6');
+assert.equal(connectorGroup.attrs['stroke-width'],'2.5');
+assert.equal(upperPaths.map(p=>p.attrs.d.match(/ V /g).length-1).join(','),'13,14,4,1');
+const parentBounds=[[0,18],[19,40],[40,44],[44,52]];
+upperPaths.forEach((path,i)=>{
+ const coords=[...path.attrs.d.matchAll(/M ([\d.]+) ([\d.]+)/g)].map(m=>[Number(m[1]),Number(m[2])]);
+ assert.ok(coords.every(([x,y])=>x>=8+parentBounds[i][0]*60-6 && x<=8+parentBounds[i][1]*60-6 && y>=54 && y<=94));
+});
+const noTree=createSequenceSvg(operations,{size:48,gap:12,style:'filled',color:'#62696b',segments,showConnectors:false});
+assert.ok(!noTree.children.some(c=>c.attrs['aria-label']==='Abstraction hierarchy connectors'));
+const tightTree=createSequenceSvg(operations,{size:48,gap:12,style:'filled',color:'#62696b',segments,showConnectors:true,layerGap:0});
+assert.ok(tightTree.children.some(c=>c.attrs['aria-label']==='Abstraction hierarchy connectors'));
+elements['corner-radius'].value='12';elements.sequence.value='up up up up';
+elements['l0-ranges'].value='1-3';elements['l2-ranges'].value='1-2,3-4';
+elements.connectors.checked=true;elements.connectors.events.input();
+assert.equal(elements.download.disabled,true);
+assert.ok(elements.status.textContent.includes('fit entirely'));
+elements.connectors.checked=false;elements.connectors.events.input();
+assert.equal(elements.download.disabled,false);
+console.log('Passed: parent-child branches, Restart-separated routing, optional connectors, tight-gap handling, and nesting validation.');
+const sparse=parseSegmentRanges(['up','up','up','up'],'1,2,3,4','2-3');
+assert.equal(hierarchyError(sparse.segments),null);
+assert.equal(SEQUENCE_EXAMPLE.l2,'1-18, 20-40, 41-44, 45-52');
+console.log('Passed: updated higher ranges and unconnected lower segments outside higher ranges.');
+const offIcons=noTree.children.filter(c=>c.name==='svg');
+const onIcons=tree.children.filter(c=>c.name==='svg');
+assert.equal(Number(onIcons[0].attrs.y)-Number(offIcons[0].attrs.y),32);
+assert.equal(Number(tree.attrs.height)-Number(noTree.attrs.height),32);
+const onLower=tree.children.find(c=>c.attrs['aria-label']==='Lower abstraction segments').children[0];
+const offLower=noTree.children.find(c=>c.attrs['aria-label']==='Lower abstraction segments').children[0];
+assert.equal(Number(onLower.attrs.y)-Number(offLower.attrs.y),16);
+console.log('Passed: connectors add 16 px to each layer gap and 32 px to total height.');
+const endpoints=lowerPaths.flatMap(path=>[...path.attrs.d.matchAll(/M ([\d.]+) ([\d.]+) V ([\d.]+)/g)].slice(1).map(match=>Number(match[3])));
+assert.equal(endpoints.length,51);
+assert.ok(endpoints.every(y=>Math.abs(y-(8+2*(46+40)+2.444697*48/40-3.25))<1e-9));
+console.log('Passed: all operation connectors leave a 2 px visible gap above the Up arrow tip, accounting for round caps.');
+elements.example.events.click();
+elements.connectors.checked=true;elements.connectors.events.input();
+assert.equal(elements['connector-gap-control'].hidden,false);
+assert.equal(elements['connector-extra-gap'].disabled,false);
+elements['connector-extra-gap'].value='30';elements['connector-extra-gap'].events.input();
+assert.equal(elements.download.disabled,false);
+assert.equal(Number(elements.preview.children[0].children.find(c=>c.name==='svg').attrs.y),8+2*(46+24+30));
+elements.connectors.checked=false;elements.connectors.events.input();
+assert.equal(elements['connector-gap-control'].hidden,true);
+assert.equal(elements['connector-extra-gap'].disabled,true);
+assert.equal(elements['connector-extra-gap'].value,'30');
+assert.equal(Number(elements.preview.children[0].children.find(c=>c.name==='svg').attrs.y),8+2*(46+24));
+elements['connector-extra-gap'].value='';elements.connectors.events.input();
+assert.equal(elements.download.disabled,false);
+elements.connectors.checked=true;elements.connectors.events.input();
+assert.equal(elements.download.disabled,true);
+assert.ok(elements.status.textContent.includes('connector extra gap'));
+console.log('Passed: connector extra gap input, conditional visibility, retained value, live geometry, and enabled-only validation.');
