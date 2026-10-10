@@ -12,15 +12,23 @@
     <header><p class="eyebrow">KEYPRESS SEQUENCE VIEWER</p><h1>Give your moves<br>a little direction.</h1><p class="intro">Turn a sequence of keypresses into a clean strip of icons.<br>Ready to preview, download, and use anywhere.</p></header>
     <section class="editor" aria-labelledby="input-title">
       <div class="section-heading"><h2 id="input-title">01 <span>Your sequence</span></h2><button id="example" class="text-button" type="button">Try an example ↗</button></div>
-      <label class="sr-only" for="sequence">Keypress sequence</label>
-      <textarea id="sequence" spellcheck="false" placeholder="up, right, down, left, undo, restart">f-up, h-right, right, h-down, left, undo, restart</textarea>
-      <p class="hint">Separate keys with spaces or commas. Mix styles with f-up (filled), h-right (hollow), etc.</p>
+      <label class="input-label" for="sequence">Operations</label>
+      <textarea id="sequence" spellcheck="false" placeholder="h-right, f-up, restart, h-left, f-right, h-down" aria-describedby="operation-help"></textarea>
+      <p id="operation-help" class="hint">Separate keys with spaces or commas. Mix styles with f-up (filled), h-right (hollow), etc.</p>
+      <div class="segment-inputs">
+        <div><label class="input-label" for="l0-ranges">Lower abstraction ranges</label><textarea id="l0-ranges" spellcheck="false" placeholder="1-2, 4, 5-6" aria-describedby="range-help"></textarea></div>
+        <div><label class="input-label" for="l2-ranges">Higher abstraction ranges</label><textarea id="l2-ranges" spellcheck="false" placeholder="1-2, 4-6" aria-describedby="range-help"></textarea></div>
+      </div>
+      <p id="range-help" class="hint">Ranges use operation indices starting at 1: 1-4 is one segment; 5 is a single-operation segment. Restart counts as a position but must be left out. Leave a field empty to omit its segments.</p>
       <details><summary>Supported keys</summary><div class="key-guide"><p><b>Movement</b> up / down / left / right · ArrowUp / ArrowDown / ArrowLeft / ArrowRight · W / S / A / D · ↑ / ↓ / ← / →</p><p><b>Arrow styles</b> Add f- (filled) or h- (hollow) to any movement key, e.g. h-up, f-D, h-←. The longer filled- and hollow- prefixes also work. Unprefixed keys use the default style below.</p><p><b>Actions</b> undo / Z · restart / R</p></div></details>
       <div class="controls">
         <label>Default arrow style<select id="style"><option value="filled">Filled</option><option value="hollow">Hollow</option></select></label>
         <label>Icon size <span class="unit">px</span><input id="size" type="number" min="16" max="256" value="48"></label>
         <label>Spacing <span class="unit">px</span><input id="gap" type="number" min="0" max="128" value="12"></label>
-        <label>Icon color<input id="color" type="color" value="#8e9394"></label>
+        <label>Segment gap <span class="unit">px</span><input id="segment-gap" type="number" min="0" max="128" value="8"></label>
+        <label>Icon color<input id="color" type="color" value="#62696b"></label>
+        <label>Lower abstraction color<input id="lower-color" type="color" value="#3B8FBD"></label>
+        <label>Higher abstraction color<input id="higher-color" type="color" value="#7D5BA3"></label>
       </div>
       <label class="ruler-option"><input id="ruler" type="checkbox" checked> Show operation index ruler <span>(starts at 1; major ticks every 5)</span></label>
     </section>
