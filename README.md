@@ -33,6 +33,8 @@ Choose the default arrow style, icon size, spacing, and color. Unknown keys prev
 
 The download has a transparent background and contains vector shapes without external image references. All input is processed locally in the browser.
 
+Enable **Show operation index ruler** to include a ruler below the icons, in both the preview and downloaded SVG. Indexing starts at 1 and counts every token, including undo and restart. Each tick aligns with its icon's center; minor ticks are 8 px long, and every fifth tick is 12 px long and labeled (5, 10, 15, …). The ruler and its labels are black and stay aligned when size or spacing changes. It is shown by default and can be disabled with the checkbox.
+
 ## Project files
 
 - `index.html`: page structure and input controls

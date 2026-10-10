@@ -35,10 +35,10 @@ const templates = Object.fromEntries(Object.entries(ASSETS).map(([key, source]) 
   const root = new DOMParser().parseFromString(source, 'image/svg+xml').documentElement;
   return [key, { viewBox: root.getAttribute('viewBox'), paths: [...root.querySelectorAll('path')] }];
 }));
-function createSequenceSvg(keys, { size, gap, style, color }) {
+function createSequenceSvg(keys, { size, gap, style, color, showRuler = false }) {
   const padding = 8;
   const width = padding * 2 + keys.length * size + Math.max(0, keys.length - 1) * gap;
-  const height = size + padding * 2;
+  const height = size + padding * 2 + (showRuler ? 48 : 0);
   const svg = svgElement('svg', { xmlns: NS, width, height, viewBox: `0 0 ${width} ${height}`, role: 'img', 'aria-label': `Keypress sequence: ${keys.join(', ')}` });
   const title = svgElement('title');
   title.textContent = `Keypress sequence: ${keys.join(', ')}`;
@@ -65,6 +65,33 @@ function createSequenceSvg(keys, { size, gap, style, color }) {
     icon.append(rotation);
     svg.append(icon);
   });
+  if (showRuler && keys.length) {
+    const ruler = svgElement('g', { 'aria-label': 'Operation index ruler, starting at 1' });
+    const centerX = index => padding + index * (size + gap) + size / 2;
+    const baselineY = padding + size + 10;
+    ruler.append(svgElement('line', {
+      x1: centerX(0), x2: centerX(keys.length - 1),
+      y1: baselineY, y2: baselineY, stroke: '#000000', 'stroke-width': 1
+    }));
+    keys.forEach((_, index) => {
+      const operationIndex = index + 1;
+      const major = operationIndex % 5 === 0;
+      const x = centerX(index);
+      ruler.append(svgElement('line', {
+        x1: x, x2: x, y1: baselineY, y2: baselineY + (major ? 12 : 8),
+        stroke: '#000000', 'stroke-width': 1
+      }));
+      if (major) {
+        const label = svgElement('text', {
+          x, y: baselineY + 26, fill: '#000000', 'text-anchor': 'middle',
+          'font-family': 'Arial, sans-serif', 'font-size': 14
+        });
+        label.textContent = operationIndex;
+        ruler.append(label);
+      }
+    });
+    svg.append(ruler);
+  }
   return svg;
 }
 const input = document.querySelector('#sequence');
@@ -101,13 +128,13 @@ function render() {
     status.textContent = 'Use an icon size of 16–256 px and spacing of 0–128 px (whole numbers).';
     return empty('Adjust the icon size or spacing.');
   }
-  currentSvg = createSequenceSvg(keys, { size: Number(size.value), gap: Number(gap.value), style: document.querySelector('#style').value, color: document.querySelector('#color').value });
+  currentSvg = createSequenceSvg(keys, { size: Number(size.value), gap: Number(gap.value), style: document.querySelector('#style').value, color: document.querySelector('#color').value, showRuler: document.querySelector('#ruler').checked });
   preview.append(currentSvg);
   download.disabled = false;
 }
 for (const element of document.querySelectorAll('textarea, select, input')) element.addEventListener('input', render);
 document.querySelector('#example').addEventListener('click', () => {
-  input.value = 'f-up, h-right, right, h-down, left, undo, restart';
+  input.value = 'h-right, h-left, h-up, f-up, f-up, f-up, f-up, f-up, h-left, h-up, f-right, f-right, f-right, f-right, f-right, f-right, f-right, f-right, restart, h-up, f-up, f-up, f-up, f-up, f-up, h-left, h-left, h-left, h-left, h-left, h-up, f-right, f-right, f-right, f-right, f-right, f-right, f-right, f-right, f-right, f-right, f-right, f-right, f-right, h-down, h-down, h-down, h-down, h-right, h-right, h-right, f-right';
   render();
 });
 download.addEventListener('click', () => {
